@@ -6,15 +6,26 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "ice-cream-shop",
 	"main": "src/index.ts",
-	"compatibility_date": "2025-07-18",
+	"compatibility_date": "2025-03-07",
 	"compatibility_flags": [
-		"global_fetch_strictly_public"
+		"nodejs_compat"
 	],
 	"assets": {
 		"directory": "./public"
 	},
 	"observability": {
 		"enabled": true
+	},
+	"queues": {
+		"producers": [{
+			"name": "ice-cream-orders",
+			"binding": "ICE_CREAM_QUEUE"
+		}],
+		"consumers": [{
+			"name": "ice-cream-orders",
+			"dead_letter_queue": "ice-cream-orders-dlq",
+			"retry_delay": 300
+		}]
 	}
 	/**
 	 * Smart Placement
