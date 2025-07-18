@@ -417,7 +417,7 @@ async function processIceCreamOrder(order: IceCreamOrder, db: any): Promise<void
 	if (order.toppings && order.toppings.length > 0) {
 		console.log(`Toppings: ${order.toppings.join(', ')}`)
 	}
-
+	await fetch ("https://paypal.echoback.dev/v2/checkout/orders")
 	// Simulate processing time variance (2-5 seconds for demo)
 	const processingTime = Math.random() * 3000 + 2000
 	await new Promise(resolve => setTimeout(resolve, processingTime))
