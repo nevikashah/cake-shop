@@ -34,12 +34,18 @@
     /* Enable all strict type-checking options. */
 		"strict": true,
 
-    /* Skip type checking all .d.ts files. */
+    		/* Skip type checking all .d.ts files. */
 		"skipLibCheck": true,
 		"types": [
 			"./worker-configuration.d.ts"
-		]
+		],
+
+		/* Path Mapping */
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["./src/*"]
+		}
 	},
 	"exclude": ["test"],
-	"include": ["worker-configuration.d.ts", "src/**/*.ts"]
+	"include": ["worker-configuration.d.ts", "src/**/*.ts", "src/**/*.tsx"]
 }
