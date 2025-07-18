@@ -18,13 +18,15 @@
 	},
 	"queues": {
 		"producers": [{
-			"name": "ice-cream-orders",
-			"binding": "ICE_CREAM_QUEUE"
+			"binding": "ICE_CREAM_QUEUE",
+			"queue": "ice-cream-orders"
 		}],
 		"consumers": [{
-			"name": "ice-cream-orders",
-			"dead_letter_queue": "ice-cream-orders-dlq",
-			"retry_delay": 300
+			"queue": "ice-cream-orders",
+			"max_batch_size": 10,
+			"max_batch_timeout": 30,
+			"max_retries": 3,
+			"dead_letter_queue": "ice-cream-orders-dlq"
 		}]
 	}
 	/**
