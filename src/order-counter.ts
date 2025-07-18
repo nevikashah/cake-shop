@@ -12,7 +12,7 @@ interface Env {
   ORDER_COUNTER: DurableObjectNamespace;
 }
 
-export class OrderCounter extends DurableObject {
+class OrderCounter extends DurableObject {
   private sessions: Set<WebSocket>;
   private completedCount: number = 0;
   private queuedCount: number = 0;
@@ -263,4 +263,7 @@ export class OrderCounter extends DurableObject {
   async getCurrentCounts(): Promise<{ completedCount: number; queuedCount: number }> {
     return { completedCount: this.completedCount, queuedCount: this.queuedCount };
   }
-} 
+}
+
+// Export the OrderCounter (will be instrumented from main worker)
+export { OrderCounter }; 

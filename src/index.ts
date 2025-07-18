@@ -26,7 +26,6 @@ import { eq, desc, count, avg, sql } from 'drizzle-orm'
 import { orders, orderStats, type Order, type NewOrder } from './db/schema'
 import { OrderCounter } from './order-counter'
 import { instrument, ResolveConfigFn } from '@microlabs/otel-cf-workers'
-import { trace } from '@opentelemetry/api'
 
 interface Env {
 	ICE_CREAM_QUEUE: Queue
@@ -92,9 +91,7 @@ Example order:
 
 // Place a new ice cream order
 app.post('/order', async (c) => {
-	const tracer = trace.getTracer('ice-cream-shop')
-	return tracer.startActiveSpan('place-order', async (span) => {
-		try {
+	try {
 		const db = drizzle(c.env.DB)
 		const orderData = await c.req.json() as Partial<IceCreamOrder>
 
@@ -158,17 +155,6 @@ app.post('/order', async (c) => {
 		}
 		await c.env.ICE_CREAM_QUEUE.send(queueOrder)
 
-		// Add custom attributes to the span
-		span.setAttributes({
-			'order.id': orderId,
-			'order.customer': orderData.customerName,
-			'order.flavor': orderData.flavor,
-			'order.size': orderData.size,
-			'order.toppings_count': toppings.length,
-			'order.total_price': totalPrice
-		})
-
-		span.end()
 		return c.json({
 			success: true,
 			message: 'Order placed successfully! 🍦',
@@ -184,14 +170,10 @@ app.post('/order', async (c) => {
 
 	} catch (error) {
 		console.error('Order processing error:', error)
-		span.recordException(error as Error)
-		span.setStatus({ code: 2, message: 'Order processing failed' })
-		span.end()
 		return c.json({
 			error: 'Failed to process order'
 		}, 500)
 	}
-	})
 })
 
 // Check order status
@@ -507,9 +489,7 @@ export default instrument(handler, config)
 export { OrderCounter }
 
 async function processIceCreamOrder(order: IceCreamOrder, db: any, env: Env): Promise<void> {
-	const tracer = trace.getTracer('ice-cream-shop')
-	return tracer.startActiveSpan('process-order', async (span) => {
-		const now = new Date().toISOString()
+	const now = new Date().toISOString()
 	
 	// Update order status to preparing and set processedAt timestamp
 	await db
@@ -557,22 +537,10 @@ async function processIceCreamOrder(order: IceCreamOrder, db: any, env: Env): Pr
 		// Don't fail the order processing if counter update fails
 	}
 
-	// Add custom attributes to the processing span
-	span.setAttributes({
-		'order.id': order.orderId,
-		'order.customer': order.customerName,
-		'order.flavor': order.flavor,
-		'order.size': order.size,
-		'order.processing_time_ms': processingTime
-	})
-
-	span.end()
-
 	// In a real application, you would also:
 	// 1. Send notifications to customer (email/SMS)
 	// 2. Update inventory levels
 	// 3. Generate analytics data
 	// 4. Send to fulfillment system
 	// 5. Update real-time dashboard (WebSockets/Durable Objects)
-	})
 }
