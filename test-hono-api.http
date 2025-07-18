@@ -1,0 +1,98 @@
+### 🍦 Ice Cream Shop API Tests (Hono-powered)
+
+# Get API documentation
+GET http://localhost:8787/
+
+###
+
+# Health check
+GET http://localhost:8787/health
+
+###
+
+# Place a chocolate ice cream order
+POST http://localhost:8787/order
+Content-Type: application/json
+
+{
+  "customerName": "Alice Smith",
+  "flavor": "Chocolate",
+  "size": "medium",
+  "toppings": ["sprinkles", "cherry"]
+}
+
+### 
+
+# Place a vanilla ice cream order with multiple toppings
+POST http://localhost:8787/order
+Content-Type: application/json
+
+{
+  "customerName": "Bob Johnson", 
+  "flavor": "Vanilla",
+  "size": "large",
+  "toppings": ["nuts", "hot fudge", "whipped cream"]
+}
+
+###
+
+# Place a simple strawberry order without toppings
+POST http://localhost:8787/order
+Content-Type: application/json
+
+{
+  "customerName": "Carol Davis",
+  "flavor": "Strawberry", 
+  "size": "small"
+}
+
+###
+
+# Test validation - missing required field
+POST http://localhost:8787/order
+Content-Type: application/json
+
+{
+  "customerName": "Test User",
+  "flavor": "Chocolate"
+  // Missing "size" field
+}
+
+###
+
+# Test validation - invalid size
+POST http://localhost:8787/order
+Content-Type: application/json
+
+{
+  "customerName": "Test User",
+  "flavor": "Chocolate",
+  "size": "extra-large"
+}
+
+###
+
+# Check order status (replace with actual orderId from previous responses)
+GET http://localhost:8787/status/12345678-1234-1234-1234-123456789abc
+
+###
+
+# Test invalid order ID format
+GET http://localhost:8787/status/invalid-id
+
+###
+
+# Get order statistics
+GET http://localhost:8787/orders/stats
+
+###
+
+# Test 404 handling
+GET http://localhost:8787/nonexistent-endpoint
+
+###
+
+# Test OPTIONS (CORS preflight)
+OPTIONS http://localhost:8787/order
+Access-Control-Request-Method: POST
+Access-Control-Request-Headers: Content-Type 
