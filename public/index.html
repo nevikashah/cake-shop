@@ -229,6 +229,7 @@
       const [selectedSize, setSelectedSize] = useState('medium');
       const [selectedToppings, setSelectedToppings] = useState([]);
       const [lastOrder, setLastOrder] = useState(null);
+      const [recentOrders, setRecentOrders] = useState([]);
       
       // Status check state
       const [statusOrderId, setStatusOrderId] = useState('');
@@ -244,6 +245,25 @@
             : [...prev, topping]
         );
       };
+
+      const fetchRecentOrders = async () => {
+        try {
+          const response = await fetch('/orders/recent');
+          if (response.ok) {
+            const data = await response.json();
+            setRecentOrders(data.orders.slice(0, 5)); // Get last 5 orders
+          }
+        } catch (err) {
+          console.error('Failed to fetch recent orders:', err);
+        }
+      };
+
+      // Load recent orders on component mount and when activeTab changes to 'order'
+      React.useEffect(() => {
+        if (activeTab === 'order') {
+          fetchRecentOrders();
+        }
+      }, [activeTab]);
 
       const handlePlaceOrder = async () => {
         if (!customerName || !selectedFlavor) {
@@ -269,11 +289,15 @@
           
           if (data.success) {
             setLastOrder(data);
+            // Refresh recent orders list
+            fetchRecentOrders();
             // Clear form
             setCustomerName('');
             setSelectedFlavor('');
             setSelectedToppings([]);
             setSelectedSize('medium');
+            // Clear success message after 5 seconds
+            setTimeout(() => setLastOrder(null), 5000);
           } else {
             setError('Failed to place order: ' + data.message);
           }
@@ -493,10 +517,10 @@
               ])
             ]),
 
-            // Order Success
+            // Order Success Message (only if just placed)
             lastOrder && React.createElement(Card, {
               key: 'order-success',
-              className: 'bg-secondary text-secondary-foreground'
+              className: 'bg-secondary text-secondary-foreground mb-4'
             }, [
               React.createElement(CardHeader, { key: 'success-header' }, [
                 React.createElement(CardTitle, { key: 'success-title' }, 'Order Placed Successfully! 🎉'),
@@ -507,45 +531,100 @@
               ]),
               React.createElement(CardContent, {
                 key: 'success-content',
-                className: 'space-y-2'
+                className: 'text-center'
               }, [
-                                 React.createElement('div', { key: 'order-id' }, [
-                   React.createElement('strong', null, 'Order ID: '),
-                   React.createElement('code', {
-                     className: 'bg-background text-foreground px-2 py-1 rounded text-sm'
-                   }, lastOrder.orderId)
-                 ]),
-                 React.createElement('div', { key: 'customer' }, [
-                   React.createElement('strong', null, 'Customer: '),
-                   lastOrder.order.customer
-                 ]),
-                 React.createElement('div', { key: 'item' }, [
-                   React.createElement('strong', null, 'Item: '),
-                   lastOrder.order.item
-                 ]),
-                 lastOrder.order.toppings.length > 0 && React.createElement('div', { key: 'toppings' }, [
-                   React.createElement('strong', null, 'Toppings: '),
-                   lastOrder.order.toppings.join(', ')
-                 ]),
-                 React.createElement('div', { key: 'price' }, [
-                   React.createElement('strong', null, 'Total Price: '),
-                   `$${lastOrder.totalPrice.toFixed(2)}`
-                 ]),
-                 React.createElement('div', { key: 'time' }, [
-                   React.createElement('strong', null, 'Estimated Time: '),
-                   lastOrder.estimatedTime
-                 ])
+                React.createElement('div', { key: 'order-id', className: 'mb-2' }, [
+                  React.createElement('strong', null, 'Order ID: '),
+                  React.createElement('code', {
+                    className: 'bg-background text-foreground px-2 py-1 rounded text-sm'
+                  }, lastOrder.orderId)
+                ]),
+                React.createElement('div', { key: 'price', className: 'text-lg font-bold' }, [
+                  'Total: $',
+                  lastOrder.totalPrice.toFixed(2)
+                ])
+              ])
+            ]),
+
+            // Recent Orders List
+            React.createElement(Card, { key: 'recent-orders' }, [
+              React.createElement(CardHeader, { key: 'recent-header' }, [
+                React.createElement(CardTitle, { key: 'recent-title' }, 'Recent Orders 📋'),
+                React.createElement(CardDescription, { key: 'recent-desc' }, 'Last 5 orders placed')
               ]),
-              React.createElement(CardFooter, { key: 'success-footer' }, [
-                React.createElement(Button, {
-                  key: 'check-status',
-                  variant: 'neutral',
-                  onClick: () => {
-                    setStatusOrderId(lastOrder.orderId);
-                    setActiveTab('status');
-                  },
-                  className: 'w-full'
-                }, '📊 Check Status')
+              React.createElement(CardContent, {
+                key: 'recent-content',
+                className: 'space-y-3'
+              }, recentOrders.length > 0 ? recentOrders.map(order => 
+                React.createElement('div', {
+                  key: order.id,
+                  className: 'border rounded-lg p-3 bg-muted/50'
+                }, [
+                  React.createElement('div', {
+                    key: 'header',
+                    className: 'flex justify-between items-start mb-2'
+                  }, [
+                    React.createElement('div', { key: 'customer' }, [
+                      React.createElement('span', { className: 'font-medium' }, order.customerName),
+                      React.createElement('span', { 
+                        key: 'status',
+                        className: `ml-2 px-2 py-1 rounded text-xs ${
+                          order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          order.status === 'preparing' ? 'bg-yellow-100 text-yellow-800' :
+                          order.status === 'pending' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`
+                      }, order.status)
+                    ]),
+                    React.createElement('span', {
+                      key: 'price',
+                      className: 'font-bold text-sm'
+                    }, `$${order.totalPrice.toFixed(2)}`)
+                  ]),
+                  React.createElement('div', {
+                    key: 'details',
+                    className: 'text-sm text-muted-foreground'
+                  }, [
+                    React.createElement('div', { key: 'item' }, `${order.size} ${order.flavor} ice cream`),
+                    order.toppings && JSON.parse(order.toppings).length > 0 && React.createElement('div', { 
+                      key: 'toppings',
+                      className: 'mt-1'
+                    }, [
+                      React.createElement('strong', null, 'Toppings: '),
+                      JSON.parse(order.toppings).join(', ')
+                    ]),
+                    React.createElement('div', {
+                      key: 'time',
+                      className: 'mt-1 text-xs'
+                    }, [
+                      React.createElement('span', null, 'Ordered: '),
+                      new Date(order.createdAt).toLocaleString()
+                    ])
+                  ]),
+                  React.createElement('div', {
+                    key: 'actions',
+                    className: 'mt-2 pt-2 border-t'
+                  }, [
+                    React.createElement(Button, {
+                      key: 'check-status',
+                      variant: 'outline',
+                      size: 'sm',
+                      onClick: () => {
+                        setStatusOrderId(order.id);
+                        setActiveTab('status');
+                      },
+                      className: 'text-xs'
+                    }, 'Check Status')
+                  ])
+                ])
+              ) : [
+                React.createElement('div', {
+                  key: 'empty',
+                  className: 'text-center text-muted-foreground py-8'
+                }, [
+                  React.createElement('div', { key: 'icon', className: 'text-4xl mb-2' }, '🍦'),
+                  React.createElement('div', { key: 'text' }, 'No orders yet. Place your first order above!')
+                ])
               ])
             ])
           ]),
