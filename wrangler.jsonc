@@ -16,6 +16,14 @@
 	"observability": {
 		"enabled": true
 	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "ice-cream-orders",
+			"database_id": "7670db74-e36c-422b-a70c-58da0f5bacb4",
+			"migrations_dir": "drizzle"
+		}
+	],
 	"queues": {
 		"producers": [{
 			"binding": "ICE_CREAM_QUEUE",

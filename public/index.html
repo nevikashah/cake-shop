@@ -509,28 +509,32 @@
                 key: 'success-content',
                 className: 'space-y-2'
               }, [
-                React.createElement('div', { key: 'order-id' }, [
-                  React.createElement('strong', null, 'Order ID: '),
-                  React.createElement('code', {
-                    className: 'bg-background text-foreground px-2 py-1 rounded text-sm'
-                  }, lastOrder.orderId)
-                ]),
-                React.createElement('div', { key: 'customer' }, [
-                  React.createElement('strong', null, 'Customer: '),
-                  lastOrder.order.customer
-                ]),
-                React.createElement('div', { key: 'item' }, [
-                  React.createElement('strong', null, 'Item: '),
-                  lastOrder.order.item
-                ]),
-                lastOrder.order.toppings.length > 0 && React.createElement('div', { key: 'toppings' }, [
-                  React.createElement('strong', null, 'Toppings: '),
-                  lastOrder.order.toppings.join(', ')
-                ]),
-                React.createElement('div', { key: 'time' }, [
-                  React.createElement('strong', null, 'Estimated Time: '),
-                  lastOrder.estimatedTime
-                ])
+                                 React.createElement('div', { key: 'order-id' }, [
+                   React.createElement('strong', null, 'Order ID: '),
+                   React.createElement('code', {
+                     className: 'bg-background text-foreground px-2 py-1 rounded text-sm'
+                   }, lastOrder.orderId)
+                 ]),
+                 React.createElement('div', { key: 'customer' }, [
+                   React.createElement('strong', null, 'Customer: '),
+                   lastOrder.order.customer
+                 ]),
+                 React.createElement('div', { key: 'item' }, [
+                   React.createElement('strong', null, 'Item: '),
+                   lastOrder.order.item
+                 ]),
+                 lastOrder.order.toppings.length > 0 && React.createElement('div', { key: 'toppings' }, [
+                   React.createElement('strong', null, 'Toppings: '),
+                   lastOrder.order.toppings.join(', ')
+                 ]),
+                 React.createElement('div', { key: 'price' }, [
+                   React.createElement('strong', null, 'Total Price: '),
+                   `$${lastOrder.totalPrice.toFixed(2)}`
+                 ]),
+                 React.createElement('div', { key: 'time' }, [
+                   React.createElement('strong', null, 'Estimated Time: '),
+                   lastOrder.estimatedTime
+                 ])
               ]),
               React.createElement(CardFooter, { key: 'success-footer' }, [
                 React.createElement(Button, {
@@ -586,22 +590,42 @@
                     key: 'status-info',
                     className: 'space-y-2'
                   }, [
-                    React.createElement('div', { key: 'id' }, [
-                      React.createElement('strong', null, 'Order ID: '),
-                      orderStatus.orderId
-                    ]),
-                    React.createElement('div', { key: 'status' }, [
-                      React.createElement('strong', null, 'Status: '),
-                      React.createElement('span', { className: 'capitalize font-bold' }, orderStatus.status)
-                    ]),
-                    React.createElement('div', { key: 'message' }, [
-                      React.createElement('strong', null, 'Message: '),
-                      orderStatus.message
-                    ]),
-                    orderStatus.estimatedWaitTime && React.createElement('div', { key: 'wait' }, [
-                      React.createElement('strong', null, 'Estimated Wait: '),
-                      orderStatus.estimatedWaitTime
-                    ])
+                                         React.createElement('div', { key: 'id' }, [
+                       React.createElement('strong', null, 'Order ID: '),
+                       orderStatus.orderId
+                     ]),
+                     React.createElement('div', { key: 'customer' }, [
+                       React.createElement('strong', null, 'Customer: '),
+                       orderStatus.customerName
+                     ]),
+                     React.createElement('div', { key: 'item' }, [
+                       React.createElement('strong', null, 'Item: '),
+                       orderStatus.item
+                     ]),
+                     orderStatus.toppings.length > 0 && React.createElement('div', { key: 'toppings' }, [
+                       React.createElement('strong', null, 'Toppings: '),
+                       orderStatus.toppings.join(', ')
+                     ]),
+                     React.createElement('div', { key: 'price' }, [
+                       React.createElement('strong', null, 'Total Price: '),
+                       `$${orderStatus.totalPrice.toFixed(2)}`
+                     ]),
+                     React.createElement('div', { key: 'status' }, [
+                       React.createElement('strong', null, 'Status: '),
+                       React.createElement('span', { className: 'capitalize font-bold' }, orderStatus.status)
+                     ]),
+                     React.createElement('div', { key: 'message' }, [
+                       React.createElement('strong', null, 'Message: '),
+                       orderStatus.message
+                     ]),
+                     orderStatus.estimatedTime && React.createElement('div', { key: 'wait' }, [
+                       React.createElement('strong', null, 'Estimated Time: '),
+                       orderStatus.estimatedTime
+                     ]),
+                     React.createElement('div', { key: 'created' }, [
+                       React.createElement('strong', null, 'Ordered At: '),
+                       new Date(orderStatus.createdAt).toLocaleString()
+                     ])
                   ])
                 ])
               ])
@@ -674,11 +698,21 @@
                     key: 'daily',
                     className: 'flex justify-between'
                   }, [
-                    React.createElement('span', { key: 'daily-label' }, 'Daily Orders:'),
-                    React.createElement('span', {
-                      key: 'daily-value',
-                      className: 'font-bold'
-                    }, stats.stats.dailyOrders)
+                                         React.createElement('span', { key: 'total-label' }, 'Total Orders:'),
+                     React.createElement('span', {
+                       key: 'total-value',
+                       className: 'font-bold'
+                     }, stats.stats.totalOrders)
+                   ]),
+                   React.createElement('div', {
+                     key: 'daily',
+                     className: 'flex justify-between'
+                   }, [
+                     React.createElement('span', { key: 'daily-label' }, 'Daily Orders:'),
+                     React.createElement('span', {
+                       key: 'daily-value',
+                       className: 'font-bold'
+                     }, stats.stats.dailyOrders)
                   ]),
                   React.createElement('div', {
                     key: 'processing',
