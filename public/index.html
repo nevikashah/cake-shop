@@ -238,6 +238,10 @@
       // Stats state
       const [stats, setStats] = useState(null);
 
+      // Real-time counter state
+      const [completedOrdersCount, setCompletedOrdersCount] = useState(0);
+      const [counterConnected, setCounterConnected] = useState(false);
+
       const handleToppingToggle = (topping) => {
         setSelectedToppings(prev => 
           prev.includes(topping) 
@@ -286,6 +290,58 @@
           fetchRecentOrders();
         }
       }, [activeTab]);
+
+      // Set up real-time counter WebSocket connection
+      React.useEffect(() => {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/counter/ws`;
+        
+        const connectToCounter = () => {
+          const ws = new WebSocket(wsUrl);
+          
+          ws.onopen = () => {
+            console.log('Connected to order counter');
+            setCounterConnected(true);
+            // Request current count
+            ws.send(JSON.stringify({ type: 'get_count' }));
+          };
+          
+          ws.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (data.type === 'count_update') {
+                setCompletedOrdersCount(data.count);
+                console.log('Counter updated:', data.count);
+              }
+            } catch (error) {
+              console.error('Error parsing counter message:', error);
+            }
+          };
+          
+          ws.onclose = () => {
+            console.log('Disconnected from order counter');
+            setCounterConnected(false);
+            // Try to reconnect after 3 seconds
+            setTimeout(connectToCounter, 3000);
+          };
+          
+          ws.onerror = (error) => {
+            console.error('Counter WebSocket error:', error);
+            setCounterConnected(false);
+          };
+          
+          return ws;
+        };
+        
+        const ws = connectToCounter();
+        
+        // Cleanup on unmount
+        return () => {
+          if (ws) {
+            ws.close();
+          }
+        };
+      }, []);
 
       const handlePlaceOrder = async () => {
         if (!customerName || !selectedFlavor) {
@@ -365,6 +421,22 @@
         }
       };
 
+      const handleResetCounter = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const response = await fetch('/counter/reset', { method: 'POST' });
+          const data = await response.json();
+          if (data.success) {
+            console.log('Counter reset successfully');
+          }
+        } catch (error) {
+          setError('Error resetting counter: ' + String(error));
+        } finally {
+          setLoading(false);
+        }
+      };
+
       useEffect(() => {
         if (activeTab === 'stats') {
           handleLoadStats();
@@ -395,6 +467,50 @@
                 key: 'desc',
                 className: 'text-main-foreground/80 text-lg'
               }, 'Demo powered by Cloudflare Workers + Hono + Queues')
+            ])
+          ]),
+
+          // Real-time Counter Display
+          React.createElement(Card, {
+            key: 'counter-section',
+            className: 'bg-secondary text-secondary-foreground border-2 border-foreground shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]'
+          }, [
+            React.createElement(CardContent, {
+              key: 'counter-content',
+              className: 'pt-6'
+            }, [
+              React.createElement('div', {
+                key: 'counter-container',
+                className: 'flex items-center justify-center gap-4'
+              }, [
+                React.createElement('div', {
+                  key: 'counter-icon',
+                  className: 'text-3xl'
+                }, '🎉'),
+                React.createElement('div', { key: 'counter-info' }, [
+                  React.createElement('div', {
+                    key: 'counter-label',
+                    className: 'text-sm font-medium text-secondary-foreground/80 text-center'
+                  }, 'Total Orders Completed'),
+                  React.createElement('div', {
+                    key: 'counter-value',
+                    className: 'text-4xl font-bold text-center'
+                  }, completedOrdersCount.toLocaleString())
+                ]),
+                React.createElement('div', {
+                  key: 'connection-status',
+                  className: 'flex items-center gap-2'
+                }, [
+                  React.createElement('div', {
+                    key: 'status-dot',
+                    className: `w-3 h-3 rounded-full ${counterConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`
+                  }),
+                  React.createElement('span', {
+                    key: 'status-text',
+                    className: 'text-xs text-secondary-foreground/60'
+                  }, counterConnected ? 'Live' : 'Reconnecting...')
+                ])
+              ])
             ])
           ]),
 
@@ -773,17 +889,27 @@
                        className: 'font-bold'
                      }, stats.stats.totalOrders)
                    ]),
-                   React.createElement('div', {
-                     key: 'daily',
-                     className: 'flex justify-between'
-                   }, [
-                     React.createElement('span', { key: 'daily-label' }, 'Daily Orders:'),
-                     React.createElement('span', {
-                       key: 'daily-value',
-                       className: 'font-bold'
-                     }, stats.stats.dailyOrders)
-                  ]),
-                  React.createElement('div', {
+                                    React.createElement('div', {
+                   key: 'daily',
+                   className: 'flex justify-between'
+                 }, [
+                   React.createElement('span', { key: 'daily-label' }, 'Daily Orders:'),
+                   React.createElement('span', {
+                     key: 'daily-value',
+                     className: 'font-bold'
+                   }, stats.stats.dailyOrders)
+                                  ]),
+                 React.createElement('div', {
+                   key: 'completed-counter',
+                   className: 'flex justify-between border-t pt-2 mt-2'
+                 }, [
+                   React.createElement('span', { key: 'counter-label' }, 'Live Completed Count:'),
+                   React.createElement('span', {
+                     key: 'counter-value',
+                     className: 'font-bold text-green-600'
+                   }, `${completedOrdersCount} ${counterConnected ? '🟢' : '🔴'}`)
+                 ]),
+                 React.createElement('div', {
                     key: 'processing',
                     className: 'flex justify-between'
                   }, [
@@ -827,8 +953,16 @@
               onClick: handleLoadStats,
               disabled: loading,
               variant: 'neutral',
-              className: 'w-full'
-            }, loading ? 'Loading...' : '🔄 Refresh Stats')
+              className: 'w-full mb-2'
+            }, loading ? 'Loading...' : '🔄 Refresh Stats'),
+
+            React.createElement(Button, {
+              key: 'reset-counter',
+              onClick: handleResetCounter,
+              disabled: loading,
+              variant: 'outline',
+              className: 'w-full text-sm'
+            }, loading ? 'Resetting...' : '🔄 Reset Live Counter')
           ])
         ])
       ]);

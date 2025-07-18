@@ -17,10 +17,12 @@ import { cors } from 'hono/cors'
 import { drizzle } from 'drizzle-orm/d1'
 import { eq, desc, count, avg, sql } from 'drizzle-orm'
 import { orders, orderStats, type Order, type NewOrder } from './db/schema'
+import { OrderCounter } from './order-counter'
 
 interface Env {
 	ICE_CREAM_QUEUE: Queue
 	DB: D1Database
+	ORDER_COUNTER: DurableObjectNamespace
 }
 
 interface IceCreamOrder {
@@ -340,6 +342,48 @@ app.get('/orders/recent', async (c) => {
 	}
 })
 
+// Counter WebSocket endpoint for real-time updates
+app.get('/counter/ws', async (c) => {
+	const upgradeHeader = c.req.header('Upgrade')
+	if (upgradeHeader?.toLowerCase().includes('websocket')) {
+		// Get the global counter Durable Object
+		const id = c.env.ORDER_COUNTER.idFromName('global-counter')
+		const counter = c.env.ORDER_COUNTER.get(id)
+		
+		// Forward the WebSocket upgrade request to the Durable Object
+		return counter.fetch(c.req.raw)
+	}
+	
+	return c.json({
+		error: 'WebSocket upgrade required'
+	}, 400)
+})
+
+// Counter API endpoints
+app.get('/counter', async (c) => {
+	try {
+		const id = c.env.ORDER_COUNTER.idFromName('global-counter')
+		const counter = c.env.ORDER_COUNTER.get(id)
+		const response = await counter.fetch(new Request('http://localhost/count'))
+		return response
+	} catch (error) {
+		console.error('Counter error:', error)
+		return c.json({ error: 'Failed to get counter' }, 500)
+	}
+})
+
+app.post('/counter/reset', async (c) => {
+	try {
+		const id = c.env.ORDER_COUNTER.idFromName('global-counter')
+		const counter = c.env.ORDER_COUNTER.get(id)
+		const response = await counter.fetch(new Request('http://localhost/reset', { method: 'POST' }))
+		return response
+	} catch (error) {
+		console.error('Counter reset error:', error)
+		return c.json({ error: 'Failed to reset counter' }, 500)
+	}
+})
+
 // Health check endpoint
 app.get('/health', (c) => {
 	return c.json({
@@ -347,7 +391,8 @@ app.get('/health', (c) => {
 		timestamp: new Date().toISOString(),
 		service: 'Ice Cream Shop API',
 		database: 'D1 connected',
-		queue: 'Queue connected'
+		queue: 'Queue connected',
+		counter: 'OrderCounter Durable Object connected'
 	})
 })
 
@@ -371,7 +416,7 @@ export default {
 		for (const message of batch.messages) {
 			try {
 				const order = message.body as IceCreamOrder
-				await processIceCreamOrder(order, db)
+				await processIceCreamOrder(order, db, env)
 				console.log(`✅ Successfully processed order ${order.orderId}`)
 			} catch (error) {
 				const order = message.body as IceCreamOrder
@@ -397,7 +442,10 @@ export default {
 	},
 } satisfies ExportedHandler<Env>
 
-async function processIceCreamOrder(order: IceCreamOrder, db: any): Promise<void> {
+// Export the OrderCounter Durable Object
+export { OrderCounter }
+
+async function processIceCreamOrder(order: IceCreamOrder, db: any, env: Env): Promise<void> {
 	const now = new Date().toISOString()
 	
 	// Update order status to preparing and set processedAt timestamp
@@ -434,6 +482,17 @@ async function processIceCreamOrder(order: IceCreamOrder, db: any): Promise<void
 		.where(eq(orders.id, order.orderId))
 
 	console.log(`🎉 Completed order ${order.orderId} in ${processingTime.toFixed(0)}ms`)
+
+	// Increment the global order counter in real-time
+	try {
+		const counterId = env.ORDER_COUNTER.idFromName('global-counter')
+		const counter = env.ORDER_COUNTER.get(counterId)
+		await counter.fetch(new Request('http://localhost/increment', { method: 'POST' }))
+		console.log(`📊 Updated global order counter`)
+	} catch (error) {
+		console.error('Failed to update order counter:', error)
+		// Don't fail the order processing if counter update fails
+	}
 
 	// In a real application, you would also:
 	// 1. Send notifications to customer (email/SMS)
