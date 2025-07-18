@@ -251,7 +251,29 @@
           const response = await fetch('/orders/recent');
           if (response.ok) {
             const data = await response.json();
-            setRecentOrders(data.orders.slice(0, 5)); // Get last 5 orders
+            // Ensure we have proper data structure and handle mixed toppings formats
+            const orders = (data.orders || []).slice(0, 5).map(order => ({
+              ...order,
+              toppings: (() => {
+                try {
+                  // Handle different toppings formats
+                  if (Array.isArray(order.toppings)) return order.toppings;
+                  if (typeof order.toppings === 'string') {
+                    try {
+                      return JSON.parse(order.toppings);
+                    } catch {
+                      return order.toppings ? [order.toppings] : [];
+                    }
+                  }
+                  return [];
+                } catch {
+                  return [];
+                }
+              })()
+            }));
+            setRecentOrders(orders);
+          } else {
+            console.error('Failed to fetch recent orders: HTTP', response.status);
           }
         } catch (err) {
           console.error('Failed to fetch recent orders:', err);
@@ -288,7 +310,6 @@
           const data = await response.json();
           
           if (data.success) {
-            setLastOrder(data);
             // Refresh recent orders list
             fetchRecentOrders();
             // Clear form
@@ -296,8 +317,6 @@
             setSelectedFlavor('');
             setSelectedToppings([]);
             setSelectedSize('medium');
-            // Clear success message after 5 seconds
-            setTimeout(() => setLastOrder(null), 5000);
           } else {
             setError('Failed to place order: ' + data.message);
           }
@@ -517,35 +536,6 @@
               ])
             ]),
 
-            // Order Success Message (only if just placed)
-            lastOrder && React.createElement(Card, {
-              key: 'order-success',
-              className: 'bg-secondary text-secondary-foreground mb-4'
-            }, [
-              React.createElement(CardHeader, { key: 'success-header' }, [
-                React.createElement(CardTitle, { key: 'success-title' }, 'Order Placed Successfully! 🎉'),
-                React.createElement(CardDescription, {
-                  key: 'success-desc',
-                  className: 'text-secondary-foreground/80'
-                }, lastOrder.message)
-              ]),
-              React.createElement(CardContent, {
-                key: 'success-content',
-                className: 'text-center'
-              }, [
-                React.createElement('div', { key: 'order-id', className: 'mb-2' }, [
-                  React.createElement('strong', null, 'Order ID: '),
-                  React.createElement('code', {
-                    className: 'bg-background text-foreground px-2 py-1 rounded text-sm'
-                  }, lastOrder.orderId)
-                ]),
-                React.createElement('div', { key: 'price', className: 'text-lg font-bold' }, [
-                  'Total: $',
-                  lastOrder.totalPrice.toFixed(2)
-                ])
-              ])
-            ]),
-
             // Recent Orders List
             React.createElement(Card, { key: 'recent-orders' }, [
               React.createElement(CardHeader, { key: 'recent-header' }, [
@@ -586,13 +576,13 @@
                     className: 'text-sm text-muted-foreground'
                   }, [
                     React.createElement('div', { key: 'item' }, `${order.size} ${order.flavor} ice cream`),
-                    order.toppings && JSON.parse(order.toppings).length > 0 && React.createElement('div', { 
-                      key: 'toppings',
-                      className: 'mt-1'
-                    }, [
-                      React.createElement('strong', null, 'Toppings: '),
-                      JSON.parse(order.toppings).join(', ')
-                    ]),
+                                         order.toppings && order.toppings.length > 0 && React.createElement('div', { 
+                       key: 'toppings',
+                       className: 'mt-1'
+                     }, [
+                       React.createElement('strong', null, 'Toppings: '),
+                       order.toppings.join(', ')
+                     ]),
                     React.createElement('div', {
                       key: 'time',
                       className: 'mt-1 text-xs'
