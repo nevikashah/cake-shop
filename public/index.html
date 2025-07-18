@@ -240,6 +240,7 @@
 
       // Real-time counter state
       const [completedOrdersCount, setCompletedOrdersCount] = useState(0);
+      const [queuedOrdersCount, setQueuedOrdersCount] = useState(0);
       const [counterConnected, setCounterConnected] = useState(false);
 
       const handleToppingToggle = (topping) => {
@@ -310,8 +311,12 @@
             try {
               const data = JSON.parse(event.data);
               if (data.type === 'count_update') {
-                setCompletedOrdersCount(data.count);
-                console.log('Counter updated:', data.count);
+                setCompletedOrdersCount(data.completedCount || 0);
+                setQueuedOrdersCount(data.queuedCount || 0);
+                console.log('Counters updated:', { 
+                  completed: data.completedCount, 
+                  queued: data.queuedCount 
+                });
               }
             } catch (error) {
               console.error('Error parsing counter message:', error);
@@ -481,25 +486,45 @@
             }, [
               React.createElement('div', {
                 key: 'counter-container',
-                className: 'flex items-center justify-center gap-4'
+                className: 'flex items-center justify-center gap-8'
               }, [
                 React.createElement('div', {
-                  key: 'counter-icon',
-                  className: 'text-3xl'
-                }, '🎉'),
-                React.createElement('div', { key: 'counter-info' }, [
+                  key: 'queued-counter',
+                  className: 'text-center'
+                }, [
                   React.createElement('div', {
-                    key: 'counter-label',
-                    className: 'text-sm font-medium text-secondary-foreground/80 text-center'
-                  }, 'Total Orders Completed'),
+                    key: 'queued-icon',
+                    className: 'text-2xl mb-1'
+                  }, '⏳'),
                   React.createElement('div', {
-                    key: 'counter-value',
-                    className: 'text-4xl font-bold text-center'
+                    key: 'queued-label',
+                    className: 'text-xs font-medium text-secondary-foreground/80'
+                  }, 'Orders Queued'),
+                  React.createElement('div', {
+                    key: 'queued-value',
+                    className: 'text-3xl font-bold text-orange-600'
+                  }, queuedOrdersCount.toLocaleString())
+                ]),
+                React.createElement('div', {
+                  key: 'completed-counter',
+                  className: 'text-center'
+                }, [
+                  React.createElement('div', {
+                    key: 'completed-icon',
+                    className: 'text-2xl mb-1'
+                  }, '🎉'),
+                  React.createElement('div', {
+                    key: 'completed-label',
+                    className: 'text-xs font-medium text-secondary-foreground/80'
+                  }, 'Orders Completed'),
+                  React.createElement('div', {
+                    key: 'completed-value',
+                    className: 'text-3xl font-bold text-green-600'
                   }, completedOrdersCount.toLocaleString())
                 ]),
                 React.createElement('div', {
                   key: 'connection-status',
-                  className: 'flex items-center gap-2'
+                  className: 'flex flex-col items-center gap-2'
                 }, [
                   React.createElement('div', {
                     key: 'status-dot',
@@ -900,14 +925,39 @@
                    }, stats.stats.dailyOrders)
                                   ]),
                  React.createElement('div', {
-                   key: 'completed-counter',
-                   className: 'flex justify-between border-t pt-2 mt-2'
+                   key: 'live-counters',
+                   className: 'border-t pt-2 mt-2 space-y-1'
                  }, [
-                   React.createElement('span', { key: 'counter-label' }, 'Live Completed Count:'),
-                   React.createElement('span', {
-                     key: 'counter-value',
-                     className: 'font-bold text-green-600'
-                   }, `${completedOrdersCount} ${counterConnected ? '🟢' : '🔴'}`)
+                   React.createElement('div', {
+                     key: 'queued-live',
+                     className: 'flex justify-between'
+                   }, [
+                     React.createElement('span', { key: 'queued-label' }, 'Live Queued Count:'),
+                     React.createElement('span', {
+                       key: 'queued-value',
+                       className: 'font-bold text-orange-600'
+                     }, `${queuedOrdersCount} ⏳`)
+                   ]),
+                   React.createElement('div', {
+                     key: 'completed-live',
+                     className: 'flex justify-between'
+                   }, [
+                     React.createElement('span', { key: 'completed-label' }, 'Live Completed Count:'),
+                     React.createElement('span', {
+                       key: 'completed-value',
+                       className: 'font-bold text-green-600'
+                     }, `${completedOrdersCount} 🎉`)
+                   ]),
+                   React.createElement('div', {
+                     key: 'connection-indicator',
+                     className: 'flex justify-between text-xs'
+                   }, [
+                     React.createElement('span', { key: 'status-label' }, 'Connection:'),
+                     React.createElement('span', {
+                       key: 'status-value',
+                       className: `font-bold ${counterConnected ? 'text-green-600' : 'text-red-600'}`
+                     }, counterConnected ? 'Live 🟢' : 'Reconnecting 🔴')
+                   ])
                  ]),
                  React.createElement('div', {
                     key: 'processing',

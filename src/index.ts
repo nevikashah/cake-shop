@@ -124,6 +124,17 @@ app.post('/order', async (c) => {
 		// Save order to database
 		await db.insert(orders).values(newOrder)
 
+		// Increment the queued orders counter
+		try {
+			const counterId = c.env.ORDER_COUNTER.idFromName('global-counter')
+			const counter = c.env.ORDER_COUNTER.get(counterId)
+			await counter.fetch(new Request('http://localhost/increment-queued', { method: 'POST' }))
+			console.log(`📊 Incremented queued orders counter`)
+		} catch (error) {
+			console.error('Failed to update queued counter:', error)
+			// Don't fail the order if counter update fails
+		}
+
 		// Send order to queue for processing
 		const queueOrder: IceCreamOrder = {
 			orderId,
@@ -483,14 +494,14 @@ async function processIceCreamOrder(order: IceCreamOrder, db: any, env: Env): Pr
 
 	console.log(`🎉 Completed order ${order.orderId} in ${processingTime.toFixed(0)}ms`)
 
-	// Increment the global order counter in real-time
+	// Increment the global completed orders counter in real-time
 	try {
 		const counterId = env.ORDER_COUNTER.idFromName('global-counter')
 		const counter = env.ORDER_COUNTER.get(counterId)
-		await counter.fetch(new Request('http://localhost/increment', { method: 'POST' }))
-		console.log(`📊 Updated global order counter`)
+		await counter.fetch(new Request('http://localhost/increment-completed', { method: 'POST' }))
+		console.log(`📊 Updated global completed orders counter`)
 	} catch (error) {
-		console.error('Failed to update order counter:', error)
+		console.error('Failed to update completed orders counter:', error)
 		// Don't fail the order processing if counter update fails
 	}
 

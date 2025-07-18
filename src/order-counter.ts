@@ -14,14 +14,15 @@ interface Env {
 
 export class OrderCounter extends DurableObject {
   private sessions: Set<WebSocket>;
-  private currentCount: number = 0;
+  private completedCount: number = 0;
+  private queuedCount: number = 0;
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
     this.sessions = new Set();
     
-    // Initialize counter from storage on startup
-    this.initializeCounter();
+    // Initialize counters from storage on startup
+    this.initializeCounters();
     
     // Set up WebSocket auto-response for keepalive
     this.ctx.setWebSocketAutoResponse(
@@ -29,10 +30,15 @@ export class OrderCounter extends DurableObject {
     );
   }
 
-  async initializeCounter(): Promise<void> {
-    // Load the current count from persistent storage
-    const storedCount = await this.ctx.storage.get<number>("completedOrders");
-    this.currentCount = storedCount || 0;
+  async initializeCounters(): Promise<void> {
+    // Load the current counts from persistent storage
+    const [storedCompleted, storedQueued] = await Promise.all([
+      this.ctx.storage.get<number>("completedOrders"),
+      this.ctx.storage.get<number>("queuedOrders")
+    ]);
+    
+    this.completedCount = storedCompleted || 0;
+    this.queuedCount = storedQueued || 0;
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -46,8 +52,10 @@ export class OrderCounter extends DurableObject {
 
     // Handle API requests
     switch (url.pathname) {
-      case "/increment":
-        return this.handleIncrement();
+      case "/increment-completed":
+        return this.handleIncrementCompleted();
+      case "/increment-queued":
+        return this.handleIncrementQueued();
       case "/count":
         return this.handleGetCount();
       case "/reset":
@@ -65,10 +73,11 @@ export class OrderCounter extends DurableObject {
     this.ctx.acceptWebSocket(server);
     this.sessions.add(server);
 
-    // Send current count immediately upon connection
+    // Send current counts immediately upon connection
     server.send(JSON.stringify({
       type: "count_update",
-      count: this.currentCount,
+      completedCount: this.completedCount,
+      queuedCount: this.queuedCount,
       timestamp: new Date().toISOString()
     }));
 
@@ -78,52 +87,84 @@ export class OrderCounter extends DurableObject {
     });
   }
 
-  private async handleIncrement(): Promise<Response> {
-    // Increment the counter
-    this.currentCount++;
+  private async handleIncrementCompleted(): Promise<Response> {
+    // Increment the completed counter
+    this.completedCount++;
     
     // Persist to storage
-    await this.ctx.storage.put("completedOrders", this.currentCount);
+    await this.ctx.storage.put("completedOrders", this.completedCount);
     
     // Broadcast to all connected WebSocket clients
     this.broadcast({
       type: "count_update",
-      count: this.currentCount,
+      completedCount: this.completedCount,
+      queuedCount: this.queuedCount,
       timestamp: new Date().toISOString()
     });
 
     return Response.json({
       success: true,
-      count: this.currentCount,
-      message: "Order counter incremented"
+      completedCount: this.completedCount,
+      queuedCount: this.queuedCount,
+      message: "Completed order counter incremented"
+    });
+  }
+
+  private async handleIncrementQueued(): Promise<Response> {
+    // Increment the queued counter
+    this.queuedCount++;
+    
+    // Persist to storage
+    await this.ctx.storage.put("queuedOrders", this.queuedCount);
+    
+    // Broadcast to all connected WebSocket clients
+    this.broadcast({
+      type: "count_update",
+      completedCount: this.completedCount,
+      queuedCount: this.queuedCount,
+      timestamp: new Date().toISOString()
+    });
+
+    return Response.json({
+      success: true,
+      completedCount: this.completedCount,
+      queuedCount: this.queuedCount,
+      message: "Queued order counter incremented"
     });
   }
 
   private async handleGetCount(): Promise<Response> {
     return Response.json({
-      count: this.currentCount,
+      completedCount: this.completedCount,
+      queuedCount: this.queuedCount,
       timestamp: new Date().toISOString()
     });
   }
 
   private async handleReset(): Promise<Response> {
-    // Reset counter to 0
-    this.currentCount = 0;
+    // Reset both counters to 0
+    this.completedCount = 0;
+    this.queuedCount = 0;
     
     // Persist to storage
-    await this.ctx.storage.put("completedOrders", this.currentCount);
+    await Promise.all([
+      this.ctx.storage.put("completedOrders", this.completedCount),
+      this.ctx.storage.put("queuedOrders", this.queuedCount)
+    ]);
     
     // Broadcast to all connected WebSocket clients
     this.broadcast({
       type: "count_update",
-      count: this.currentCount,
+      completedCount: this.completedCount,
+      queuedCount: this.queuedCount,
       timestamp: new Date().toISOString()
     });
 
     return Response.json({
       success: true,
-      count: this.currentCount,
-      message: "Order counter reset to 0"
+      completedCount: this.completedCount,
+      queuedCount: this.queuedCount,
+      message: "Both counters reset to 0"
     });
   }
 
@@ -134,10 +175,11 @@ export class OrderCounter extends DurableObject {
       
       switch (data.type) {
         case "get_count":
-          // Send current count to requesting client
+          // Send current counts to requesting client
           ws.send(JSON.stringify({
             type: "count_update",
-            count: this.currentCount,
+            completedCount: this.completedCount,
+            queuedCount: this.queuedCount,
             timestamp: new Date().toISOString()
           }));
           break;
@@ -185,23 +227,40 @@ export class OrderCounter extends DurableObject {
     });
   }
 
-  // RPC method to increment counter (can be called from other Workers)
-  async incrementOrderCount(): Promise<number> {
-    this.currentCount++;
-    await this.ctx.storage.put("completedOrders", this.currentCount);
+  // RPC method to increment completed counter (can be called from other Workers)
+  async incrementCompletedCount(): Promise<{ completedCount: number; queuedCount: number }> {
+    this.completedCount++;
+    await this.ctx.storage.put("completedOrders", this.completedCount);
     
     // Broadcast to WebSocket clients
     this.broadcast({
       type: "count_update",
-      count: this.currentCount,
+      completedCount: this.completedCount,
+      queuedCount: this.queuedCount,
       timestamp: new Date().toISOString()
     });
     
-    return this.currentCount;
+    return { completedCount: this.completedCount, queuedCount: this.queuedCount };
   }
 
-  // RPC method to get current count
-  async getCurrentCount(): Promise<number> {
-    return this.currentCount;
+  // RPC method to increment queued counter (can be called from other Workers)
+  async incrementQueuedCount(): Promise<{ completedCount: number; queuedCount: number }> {
+    this.queuedCount++;
+    await this.ctx.storage.put("queuedOrders", this.queuedCount);
+    
+    // Broadcast to WebSocket clients
+    this.broadcast({
+      type: "count_update",
+      completedCount: this.completedCount,
+      queuedCount: this.queuedCount,
+      timestamp: new Date().toISOString()
+    });
+    
+    return { completedCount: this.completedCount, queuedCount: this.queuedCount };
+  }
+
+  // RPC method to get current counts
+  async getCurrentCounts(): Promise<{ completedCount: number; queuedCount: number }> {
+    return { completedCount: this.completedCount, queuedCount: this.queuedCount };
   }
 } 

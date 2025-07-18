@@ -209,7 +209,7 @@ export default function IceCreamApp() {
                      id="customer-name"
                      placeholder="Enter your name"
                      value={customerName}
-                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomerName(e.target.value)}
+                     onChange={(e) => setCustomerName((e.target as HTMLInputElement).value)}
                    />
                 </div>
 
@@ -325,7 +325,7 @@ export default function IceCreamApp() {
                                  <Input
                    placeholder="Enter your order ID"
                    value={statusOrderId}
-                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusOrderId(e.target.value)}
+                   onChange={(e) => setStatusOrderId((e.target as HTMLInputElement).value)}
                    className="flex-1"
                  />
                 <Button 
