@@ -5,11 +5,18 @@
  * - Cloudflare Queues for async processing
  * - D1 Database with Drizzle ORM for persistence
  * - Hono framework for clean routing and middleware
+ * - OpenTelemetry tracing with Honeycomb integration
  *
  * - POST /order - Place a new ice cream order (saves to DB, produces to queue)
  * - GET /status/:orderId - Check order status (reads from DB)
  * - GET /orders/stats - View order statistics (reads from DB)
  * - Queue consumer processes orders asynchronously and updates DB
+ *
+ * Setup OpenTelemetry with Honeycomb:
+ * 1. Get your API key from https://ui.honeycomb.io/account
+ * 2. Set it as a secret: wrangler secret put HONEYCOMB_API_KEY
+ * 3. Deploy: wrangler deploy
+ * 4. View traces at https://ui.honeycomb.io/{your-team}/datasets/ice-cream-shop
  */
 
 import { Hono } from 'hono'
@@ -18,11 +25,14 @@ import { drizzle } from 'drizzle-orm/d1'
 import { eq, desc, count, avg, sql } from 'drizzle-orm'
 import { orders, orderStats, type Order, type NewOrder } from './db/schema'
 import { OrderCounter } from './order-counter'
+import { instrument, ResolveConfigFn } from '@microlabs/otel-cf-workers'
+import { trace } from '@opentelemetry/api'
 
 interface Env {
 	ICE_CREAM_QUEUE: Queue
 	DB: D1Database
 	ORDER_COUNTER: DurableObjectNamespace
+	HONEYCOMB_API_KEY: string
 }
 
 interface IceCreamOrder {
@@ -82,7 +92,9 @@ Example order:
 
 // Place a new ice cream order
 app.post('/order', async (c) => {
-	try {
+	const tracer = trace.getTracer('ice-cream-shop')
+	return tracer.startActiveSpan('place-order', async (span) => {
+		try {
 		const db = drizzle(c.env.DB)
 		const orderData = await c.req.json() as Partial<IceCreamOrder>
 
@@ -146,6 +158,17 @@ app.post('/order', async (c) => {
 		}
 		await c.env.ICE_CREAM_QUEUE.send(queueOrder)
 
+		// Add custom attributes to the span
+		span.setAttributes({
+			'order.id': orderId,
+			'order.customer': orderData.customerName,
+			'order.flavor': orderData.flavor,
+			'order.size': orderData.size,
+			'order.toppings_count': toppings.length,
+			'order.total_price': totalPrice
+		})
+
+		span.end()
 		return c.json({
 			success: true,
 			message: 'Order placed successfully! 🍦',
@@ -161,10 +184,14 @@ app.post('/order', async (c) => {
 
 	} catch (error) {
 		console.error('Order processing error:', error)
+		span.recordException(error as Error)
+		span.setStatus({ code: 2, message: 'Order processing failed' })
+		span.end()
 		return c.json({
 			error: 'Failed to process order'
 		}, 500)
 	}
+	})
 })
 
 // Check order status
@@ -415,8 +442,28 @@ app.notFound((c) => {
 	}, 404)
 })
 
+// OpenTelemetry configuration for Honeycomb
+const config: ResolveConfigFn = (env: Env, _trigger) => {
+	return {
+		exporter: {
+			url: 'https://api.honeycomb.io/v1/traces',
+			headers: { 'x-honeycomb-team': env.HONEYCOMB_API_KEY },
+		},
+		service: {
+			name: 'ice-cream-shop',
+			version: '1.0.0',
+			namespace: 'production'
+		},
+		sampling: {
+			headSampler: {
+				ratio: 1.0, // Sample all requests for demo purposes
+			}
+		}
+	}
+}
+
 // Export the app with queue consumer
-export default {
+const handler = {
 	fetch: app.fetch,
 
 	// Queue consumer - processes ice cream orders asynchronously
@@ -453,11 +500,16 @@ export default {
 	},
 } satisfies ExportedHandler<Env>
 
+// Wrap the handler with OpenTelemetry instrumentation
+export default instrument(handler, config)
+
 // Export the OrderCounter Durable Object
 export { OrderCounter }
 
 async function processIceCreamOrder(order: IceCreamOrder, db: any, env: Env): Promise<void> {
-	const now = new Date().toISOString()
+	const tracer = trace.getTracer('ice-cream-shop')
+	return tracer.startActiveSpan('process-order', async (span) => {
+		const now = new Date().toISOString()
 	
 	// Update order status to preparing and set processedAt timestamp
 	await db
@@ -505,10 +557,22 @@ async function processIceCreamOrder(order: IceCreamOrder, db: any, env: Env): Pr
 		// Don't fail the order processing if counter update fails
 	}
 
+	// Add custom attributes to the processing span
+	span.setAttributes({
+		'order.id': order.orderId,
+		'order.customer': order.customerName,
+		'order.flavor': order.flavor,
+		'order.size': order.size,
+		'order.processing_time_ms': processingTime
+	})
+
+	span.end()
+
 	// In a real application, you would also:
 	// 1. Send notifications to customer (email/SMS)
 	// 2. Update inventory levels
 	// 3. Generate analytics data
 	// 4. Send to fulfillment system
 	// 5. Update real-time dashboard (WebSockets/Durable Objects)
+	})
 }

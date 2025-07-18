@@ -72,6 +72,9 @@
 	/**
 	 * Note: Use secrets to store sensitive data.
 	 * https://developers.cloudflare.com/workers/configuration/secrets/
+	 * 
+	 * Set your Honeycomb API key as a secret:
+	 * wrangler secret put HONEYCOMB_API_KEY
 	 */
 
 	/**
