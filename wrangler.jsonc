@@ -4,11 +4,14 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
+	"account_id": "ef861518e28eac75854273dc92548f4a",
 	"name": "ice-cream-shop",
 	"main": "src/index.ts",
-	"compatibility_date": "2025-03-07",
+	"compatibility_date": "2025-07-19",
 	"compatibility_flags": [
-		"nodejs_compat"
+		"nodejs_compat",
+		// "tail_worker_user_spans",
+		// "streaming_tail_worker",
 	],
 	"assets": {
 		"directory": "./public"
@@ -16,6 +19,13 @@
 	"observability": {
 		"enabled": true
 	},
+
+	// "tail_consumers": [{
+	// 	"service": "otel-streaming-tail-worker"
+	// }],
+
+	"logpush": true, 
+
 	"d1_databases": [
 		{
 			"binding": "DB",
