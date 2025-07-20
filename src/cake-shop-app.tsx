@@ -169,7 +169,7 @@ export default function CakeShopApp() {
         {/* Header */}
         <Card className="bg-main text-main-foreground">
           <CardHeader className="text-center">
-            <CardTitle className="text-4xl">🍰 Neobrutalism Cake Shop</CardTitle>
+            <CardTitle className="text-4xl">🍰 Nevi's Cake Shop</CardTitle>
             <CardDescription className="text-main-foreground/80 text-lg">
               Demo powered by Cloudflare Workers + Hono + Queues
             </CardDescription>

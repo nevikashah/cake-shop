@@ -29,8 +29,8 @@
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "cake-shop-orders",
-			"database_id": "",
+			"database_name": "cake-shop-db",
+			"database_id": "f02b02dd-de86-4689-8a5b-41a9e1c46dc1",
 			"migrations_dir": "drizzle"
 		}
 	],
