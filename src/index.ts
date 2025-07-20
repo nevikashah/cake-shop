@@ -25,7 +25,6 @@ import { drizzle } from 'drizzle-orm/d1'
 import { eq, desc, count, avg, sql } from 'drizzle-orm'
 import { orders, orderStats, type Order, type NewOrder } from './db/schema'
 import { OrderCounter } from './order-counter'
-import { instrument, ResolveConfigFn } from '@microlabs/otel-cf-workers'
 
 interface Env {
 	CAKE_QUEUE: Queue
@@ -114,7 +113,9 @@ app.post('/order', async (c) => {
 		const totalPrice = calculatePrice(orderData.size, decorations)
 		const estimatedTime = estimateTime(orderData.size, decorations)
 		const now = new Date().toISOString()
-		await fetch ("https://paypal.echoback.dev/v2/checkout/orders")
+		const res = await fetch ("https://paypal.echoback.dev/v2/checkout/orders")
+		console.log("fetch results status:", res.status)
+
 
 		// Create order object for database
 		const newOrder: NewOrder = {
@@ -424,26 +425,6 @@ app.notFound((c) => {
 		message: 'Check the root endpoint / for available routes'
 	}, 404)
 })
-
-// OpenTelemetry configuration for Honeycomb
-const config: ResolveConfigFn = (env: Env, _trigger) => {
-	return {
-		exporter: {
-			url: 'https://api.honeycomb.io/v1/traces',
-			headers: { 'x-honeycomb-team': env.HONEYCOMB_API_KEY },
-		},
-		service: {
-			name: 'cake-shop',
-			version: '1.0.0',
-			namespace: 'production'
-		},
-		sampling: {
-			headSampler: {
-				ratio: 1.0, // Sample all requests for demo purposes
-			}
-		}
-	}
-}
 
 // Export the app with queue consumer
 const handler = {
