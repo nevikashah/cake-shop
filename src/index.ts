@@ -483,8 +483,9 @@ const handler = {
 } satisfies ExportedHandler<Env>
 
 // Wrap the handler with OpenTelemetry instrumentation
-export default instrument(handler, config)
+// export default instrument(handler, config)
 
+export default handler
 // Export the OrderCounter Durable Object
 export { OrderCounter }
 

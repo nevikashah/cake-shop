@@ -10,8 +10,8 @@
 	"compatibility_date": "2025-07-19",
 	"compatibility_flags": [
 		"nodejs_compat",
-		// "tail_worker_user_spans",
-		// "streaming_tail_worker",
+		"tail_worker_user_spans",
+		"streaming_tail_worker",
 	],
 	"assets": {
 		"directory": "./public"
@@ -20,9 +20,9 @@
 		"enabled": true
 	},
 
-	// "tail_consumers": [{
-	// 	"service": "otel-streaming-tail-worker"
-	// }],
+	"tail_consumers": [{
+		"service": "otel-streaming-tail-worker"
+	}],
 
 	"logpush": true, 
 
