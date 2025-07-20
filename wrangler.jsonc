@@ -24,7 +24,7 @@
 		"service": "otel-streaming-tail-worker"
 	}],
 
-	"logpush": true, 
+	"logpush": false, 
 
 	"d1_databases": [
 		{
