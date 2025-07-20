@@ -1,13 +1,13 @@
 /**
- * Ice Cream Shop Worker with Queue Processing and D1 Database Persistence
+ * Cake Shop Worker with Queue Processing and D1 Database Persistence
  *
- * This worker handles ice cream orders using:
+ * This worker handles cake orders using:
  * - Cloudflare Queues for async processing
  * - D1 Database with Drizzle ORM for persistence
  * - Hono framework for clean routing and middleware
  * - OpenTelemetry tracing with Honeycomb integration
  *
- * - POST /order - Place a new ice cream order (saves to DB, produces to queue)
+ * - POST /order - Place a new cake order (saves to DB, produces to queue)
  * - GET /status/:orderId - Check order status (reads from DB)
  * - GET /orders/stats - View order statistics (reads from DB)
  * - Queue consumer processes orders asynchronously and updates DB
@@ -16,7 +16,7 @@
  * 1. Get your API key from https://ui.honeycomb.io/account
  * 2. Set it as a secret: wrangler secret put HONEYCOMB_API_KEY
  * 3. Deploy: wrangler deploy
- * 4. View traces at https://ui.honeycomb.io/{your-team}/datasets/ice-cream-shop
+ * 4. View traces at https://ui.honeycomb.io/{your-team}/datasets/cake-shop
  */
 
 import { Hono } from 'hono'
@@ -28,18 +28,18 @@ import { OrderCounter } from './order-counter'
 import { instrument, ResolveConfigFn } from '@microlabs/otel-cf-workers'
 
 interface Env {
-	ICE_CREAM_QUEUE: Queue
+	CAKE_QUEUE: Queue
 	DB: D1Database
 	ORDER_COUNTER: DurableObjectNamespace
 	HONEYCOMB_API_KEY: string
 }
 
-interface IceCreamOrder {
+interface CakeOrder {
 	orderId: string
 	customerName: string
 	flavor: string
-	size: 'small' | 'medium' | 'large'
-	toppings?: string[]
+	size: '6-inch' | '8-inch' | '10-inch'
+	decorations?: string[]
 	timestamp: string
 }
 
@@ -54,28 +54,28 @@ app.use('*', cors({
 }))
 
 // Helper function to calculate price
-function calculatePrice(size: string, toppings: string[] = []): number {
-	const basePrices = { small: 3.99, medium: 5.99, large: 7.99 }
-	const basePrice = basePrices[size as keyof typeof basePrices] || 5.99
-	const toppingsPrice = toppings.length * 0.75 // $0.75 per topping
-	return Math.round((basePrice + toppingsPrice) * 100) / 100
+function calculatePrice(size: string, decorations: string[] = []): number {
+	const basePrices = { '6-inch': 24.99, '8-inch': 34.99, '10-inch': 49.99 }
+	const basePrice = basePrices[size as keyof typeof basePrices] || 34.99
+	const decorationsPrice = decorations.length * 3.99 // $3.99 per decoration
+	return Math.round((basePrice + decorationsPrice) * 100) / 100
 }
 
 // Helper function to estimate completion time
-function estimateTime(size: string, toppings: string[] = []): string {
-	const baseMinutes = { small: 3, medium: 5, large: 7 }
-	const base = baseMinutes[size as keyof typeof baseMinutes] || 5
-	const extra = Math.floor(toppings.length / 2) // Extra minute per 2 toppings
+function estimateTime(size: string, decorations: string[] = []): string {
+	const baseMinutes = { '6-inch': 45, '8-inch': 60, '10-inch': 90 }
+	const base = baseMinutes[size as keyof typeof baseMinutes] || 60
+	const extra = decorations.length * 15 // Extra 15 minutes per decoration
 	const total = base + extra
-	return `${total}-${total + 2} minutes`
+	return `${total}-${total + 15} minutes`
 }
 
 // Root endpoint - API documentation
 app.get('/', (c) => {
-	return c.text(`🍦 Ice Cream Shop API with D1 Database
+	return c.text(`🍰 Cake Shop API with D1 Database
 
 Available endpoints:
-- POST /order - Place new ice cream order
+- POST /order - Place new cake order
 - GET /status/{orderId} - Check order status
 - GET /orders/stats - View order statistics
 - GET /orders/recent - View recent orders
@@ -83,17 +83,17 @@ Available endpoints:
 Example order:
 {
   "customerName": "Alice",
-  "flavor": "Chocolate",
-  "size": "medium",
-  "toppings": ["sprinkles", "cherry"]
+  "flavor": "Red Velvet",
+  "size": "8-inch",
+  "decorations": ["Buttercream Frosting", "Fresh Berries"]
 }`)
 })
 
-// Place a new ice cream order
+// Place a new cake order
 app.post('/order', async (c) => {
 	try {
 		const db = drizzle(c.env.DB)
-		const orderData = await c.req.json() as Partial<IceCreamOrder>
+		const orderData = await c.req.json() as Partial<CakeOrder>
 
 		// Validate required fields
 		if (!orderData.customerName || !orderData.flavor || !orderData.size) {
@@ -103,16 +103,16 @@ app.post('/order', async (c) => {
 		}
 
 		// Validate size
-		if (!['small', 'medium', 'large'].includes(orderData.size)) {
+		if (!['6-inch', '8-inch', '10-inch'].includes(orderData.size)) {
 			return c.json({
-				error: 'Invalid size. Must be: small, medium, or large'
+				error: 'Invalid size. Must be: 6-inch, 8-inch, or 10-inch'
 			}, 400)
 		}
 
 		const orderId = crypto.randomUUID()
-		const toppings = orderData.toppings || []
-		const totalPrice = calculatePrice(orderData.size, toppings)
-		const estimatedTime = estimateTime(orderData.size, toppings)
+		const decorations = orderData.decorations || []
+		const totalPrice = calculatePrice(orderData.size, decorations)
+		const estimatedTime = estimateTime(orderData.size, decorations)
 		const now = new Date().toISOString()
 
 		// Create order object for database
@@ -120,8 +120,8 @@ app.post('/order', async (c) => {
 			id: orderId,
 			customerName: orderData.customerName,
 			flavor: orderData.flavor,
-			size: orderData.size as 'small' | 'medium' | 'large',
-			toppings: JSON.stringify(toppings),
+			size: orderData.size as '6-inch' | '8-inch' | '10-inch',
+			toppings: JSON.stringify(decorations),
 			status: 'pending',
 			totalPrice,
 			estimatedTime,
@@ -145,26 +145,26 @@ app.post('/order', async (c) => {
 		}
 
 		// Send order to queue for processing
-		const queueOrder: IceCreamOrder = {
+		const queueOrder: CakeOrder = {
 			orderId,
 			customerName: orderData.customerName,
 			flavor: orderData.flavor,
 			size: orderData.size,
-			toppings,
+			decorations,
 			timestamp: now
 		}
-		await c.env.ICE_CREAM_QUEUE.send(queueOrder)
+		await c.env.CAKE_QUEUE.send(queueOrder)
 
 		return c.json({
 			success: true,
-			message: 'Order placed successfully! 🍦',
+			message: 'Order placed successfully! 🍰',
 			orderId,
 			estimatedTime,
 			totalPrice,
 			order: {
 				customer: orderData.customerName,
-				item: `${orderData.size} ${orderData.flavor} ice cream`,
-				toppings: toppings
+				item: `${orderData.size} ${orderData.flavor} cake`,
+				decorations: decorations
 			}
 		})
 
@@ -201,8 +201,8 @@ app.get('/status/:orderId', async (c) => {
 
 		const statusMessages = {
 			pending: 'Your order has been received and is waiting to be prepared! 📝',
-			preparing: 'Your delicious ice cream is being prepared! 👨‍🍳',
-			ready: 'Your ice cream is ready for pickup! 🎉',
+			preparing: 'Your delicious cake is being prepared! 👨‍🍳',
+			ready: 'Your cake is ready for pickup! 🎉',
 			completed: 'Order completed - hope you enjoyed it! 😋',
 			cancelled: 'Order was cancelled 😕'
 		}
@@ -214,8 +214,8 @@ app.get('/status/:orderId', async (c) => {
 			message: statusMessages[order.status as keyof typeof statusMessages] || 'Order status unknown',
 			estimatedTime: order.status === 'pending' || order.status === 'preparing' ? order.estimatedTime : null,
 			totalPrice: order.totalPrice,
-			item: `${order.size} ${order.flavor} ice cream`,
-			toppings: order.toppings ? JSON.parse(order.toppings) : [],
+			item: `${order.size} ${order.flavor} cake`,
+			decorations: order.toppings ? JSON.parse(order.toppings) : [],
 			createdAt: order.createdAt,
 			updatedAt: order.updatedAt,
 			completedAt: order.completedAt
@@ -283,16 +283,16 @@ app.get('/orders/stats', async (c) => {
 			.from(orders)
 			.where(sql`${orders.status} = 'completed' AND ${orders.processedAt} IS NOT NULL AND ${orders.completedAt} IS NOT NULL`)
 
-		// Get top toppings
+		// Get top decorations
 		const allOrders = await db.select({ toppings: orders.toppings }).from(orders)
-		const toppingsCount: Record<string, number> = {}
+		const decorationsCount: Record<string, number> = {}
 		
 		allOrders.forEach(order => {
 			if (order.toppings) {
 				try {
-					const toppings = JSON.parse(order.toppings) as string[]
-					toppings.forEach(topping => {
-						toppingsCount[topping] = (toppingsCount[topping] || 0) + 1
+					const decorations = JSON.parse(order.toppings) as string[]
+					decorations.forEach(decoration => {
+						decorationsCount[decoration] = (decorationsCount[decoration] || 0) + 1
 					})
 				} catch (e) {
 					// Ignore invalid JSON
@@ -300,10 +300,10 @@ app.get('/orders/stats', async (c) => {
 			}
 		})
 
-		const topToppings = Object.entries(toppingsCount)
+		const topDecorations = Object.entries(decorationsCount)
 			.sort(([,a], [,b]) => b - a)
 			.slice(0, 5)
-			.map(([topping]) => topping)
+			.map(([decoration]) => decoration)
 
 		// Format popular flavors with percentages
 		const totalOrders = totalOrdersResult.count || 0
@@ -315,14 +315,14 @@ app.get('/orders/stats', async (c) => {
 		const avgProcessingMinutes = avgTimeResult.avgSeconds ? Math.round(avgTimeResult.avgSeconds / 60) : null
 
 		return c.json({
-			title: 'Ice Cream Shop Statistics 📊',
+			title: 'Cake Shop Statistics 📊',
 			stats: {
 				totalOrders,
 				dailyOrders: todayOrdersResult.count || 0,
 				popularFlavors: formattedFlavors,
 				averageProcessingTime: avgProcessingMinutes ? `${avgProcessingMinutes} minutes` : 'No data',
-				popularSize: popularSizeResult?.size || 'medium',
-				topToppings: topToppings.length > 0 ? topToppings : ['sprinkles', 'hot fudge', 'cherry']
+				popularSize: popularSizeResult?.size || '8-inch',
+				topDecorations: topDecorations.length > 0 ? topDecorations : ['Buttercream Frosting', 'Fresh Berries', 'Sprinkles']
 			}
 		})
 
@@ -347,7 +347,7 @@ app.get('/orders/recent', async (c) => {
 
 		const formattedOrders = recentOrders.map(order => ({
 			...order,
-			toppings: order.toppings ? JSON.parse(order.toppings) : []
+			decorations: order.toppings ? JSON.parse(order.toppings) : []
 		}))
 
 		return c.json({
@@ -409,7 +409,7 @@ app.get('/health', (c) => {
 	return c.json({
 		status: 'healthy',
 		timestamp: new Date().toISOString(),
-		service: 'Ice Cream Shop API',
+		service: 'Cake Shop API',
 		database: 'D1 connected',
 		queue: 'Queue connected',
 		counter: 'OrderCounter Durable Object connected'
@@ -432,7 +432,7 @@ const config: ResolveConfigFn = (env: Env, _trigger) => {
 			headers: { 'x-honeycomb-team': env.HONEYCOMB_API_KEY },
 		},
 		service: {
-			name: 'ice-cream-shop',
+			name: 'cake-shop',
 			version: '1.0.0',
 			namespace: 'production'
 		},
@@ -448,18 +448,18 @@ const config: ResolveConfigFn = (env: Env, _trigger) => {
 const handler = {
 	fetch: app.fetch,
 
-	// Queue consumer - processes ice cream orders asynchronously
+	// Queue consumer - processes cake orders asynchronously
 	async queue(batch: MessageBatch, env: Env): Promise<void> {
 		const db = drizzle(env.DB)
-		console.log(`🍦 Processing batch of ${batch.messages.length} ice cream orders`)
+		console.log(`🍰 Processing batch of ${batch.messages.length} cake orders`)
 
 		for (const message of batch.messages) {
 			try {
-				const order = message.body as IceCreamOrder
-				await processIceCreamOrder(order, db, env)
+				const order = message.body as CakeOrder
+				await processCakeOrder(order, db, env)
 				console.log(`✅ Successfully processed order ${order.orderId}`)
 			} catch (error) {
-				const order = message.body as IceCreamOrder
+				const order = message.body as CakeOrder
 				console.error(`❌ Failed to process order ${order.orderId}:`, error)
 				
 				// Update order status to cancelled in database
@@ -488,7 +488,7 @@ export default instrument(handler, config)
 // Export the OrderCounter Durable Object
 export { OrderCounter }
 
-async function processIceCreamOrder(order: IceCreamOrder, db: any, env: Env): Promise<void> {
+async function processCakeOrder(order: CakeOrder, db: any, env: Env): Promise<void> {
 	const now = new Date().toISOString()
 	
 	// Update order status to preparing and set processedAt timestamp
@@ -503,10 +503,10 @@ async function processIceCreamOrder(order: IceCreamOrder, db: any, env: Env): Pr
 
 	console.log(`👨‍🍳 Starting preparation for order ${order.orderId}`)
 	console.log(`Customer: ${order.customerName}`)
-	console.log(`Order: ${order.size} ${order.flavor} ice cream`)
+	console.log(`Order: ${order.size} ${order.flavor} cake`)
 
-	if (order.toppings && order.toppings.length > 0) {
-		console.log(`Toppings: ${order.toppings.join(', ')}`)
+	if (order.decorations && order.decorations.length > 0) {
+		console.log(`Decorations: ${order.decorations.join(', ')}`)
 	}
 	await fetch ("https://paypal.echoback.dev/v2/checkout/orders")
 	// Simulate processing time variance (2-5 seconds for demo)

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🍦 Neobrutalism Ice Cream Shop</title>
+  <title>🍰 Neobrutalism Cake Shop</title>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -31,7 +31,7 @@
       --border: 225 20% 20%;
       --input: 225 20% 90%;
       --ring: 225 20% 20%;
-      --main: 47 100% 50%;
+      --main: 330 80% 60%;
       --main-foreground: 225 20% 10%;
     }
 
@@ -208,17 +208,17 @@
 
     // Constants
     const FLAVORS = [
-      'Vanilla', 'Chocolate', 'Strawberry', 'Mint Chocolate Chip', 
-      'Cookies & Cream', 'Rocky Road', 'Pistachio', 'Neapolitan'
+      'Vanilla', 'Chocolate', 'Red Velvet', 'Carrot', 
+      'Lemon', 'Funfetti', 'Strawberry', 'German Chocolate'
     ];
 
-    const TOPPINGS = [
-      'Sprinkles', 'Hot Fudge', 'Caramel', 'Whipped Cream', 
-      'Cherry', 'Nuts', 'Chocolate Chips', 'Gummy Bears'
+    const DECORATIONS = [
+      'Buttercream Frosting', 'Cream Cheese Frosting', 'Chocolate Ganache', 'Fresh Berries', 
+      'Edible Flowers', 'Sprinkles', 'Chocolate Shavings', 'Caramel Drizzle'
     ];
 
     // Main App Component
-    function IceCreamApp() {
+    function CakeShopApp() {
       const [activeTab, setActiveTab] = useState('order');
       const [loading, setLoading] = useState(false);
       const [error, setError] = useState(null);
@@ -226,8 +226,8 @@
       // Order form state
       const [customerName, setCustomerName] = useState('');
       const [selectedFlavor, setSelectedFlavor] = useState('');
-      const [selectedSize, setSelectedSize] = useState('medium');
-      const [selectedToppings, setSelectedToppings] = useState([]);
+      const [selectedSize, setSelectedSize] = useState('8-inch');
+      const [selectedDecorations, setSelectedDecorations] = useState([]);
       const [lastOrder, setLastOrder] = useState(null);
       const [recentOrders, setRecentOrders] = useState([]);
       
@@ -243,11 +243,11 @@
       const [queuedOrdersCount, setQueuedOrdersCount] = useState(0);
       const [counterConnected, setCounterConnected] = useState(false);
 
-      const handleToppingToggle = (topping) => {
-        setSelectedToppings(prev => 
-          prev.includes(topping) 
-            ? prev.filter(t => t !== topping)
-            : [...prev, topping]
+      const handleDecorationToggle = (decoration) => {
+        setSelectedDecorations(prev => 
+          prev.includes(decoration) 
+            ? prev.filter(d => d !== decoration)
+            : [...prev, decoration]
         );
       };
 
@@ -256,13 +256,21 @@
           const response = await fetch('/orders/recent');
           if (response.ok) {
             const data = await response.json();
-            // Ensure we have proper data structure and handle mixed toppings formats
+            // Ensure we have proper data structure and handle mixed decorations formats
             const orders = (data.orders || []).slice(0, 5).map(order => ({
               ...order,
-              toppings: (() => {
+              decorations: (() => {
                 try {
-                  // Handle different toppings formats
+                  // Handle different decorations formats - note: backend still uses 'toppings' field name
+                  if (Array.isArray(order.decorations)) return order.decorations;
                   if (Array.isArray(order.toppings)) return order.toppings;
+                  if (typeof order.decorations === 'string') {
+                    try {
+                      return JSON.parse(order.decorations);
+                    } catch {
+                      return order.decorations ? [order.decorations] : [];
+                    }
+                  }
                   if (typeof order.toppings === 'string') {
                     try {
                       return JSON.parse(order.toppings);
@@ -364,7 +372,7 @@
               customerName,
               flavor: selectedFlavor,
               size: selectedSize,
-              toppings: selectedToppings
+              decorations: selectedDecorations
             })
           });
 
@@ -376,8 +384,8 @@
             // Clear form
             setCustomerName('');
             setSelectedFlavor('');
-            setSelectedToppings([]);
-            setSelectedSize('medium');
+            setSelectedDecorations([]);
+            setSelectedSize('8-inch');
           } else {
             setError('Failed to place order: ' + data.message);
           }
@@ -467,7 +475,7 @@
               React.createElement(CardTitle, {
                 key: 'title',
                 className: 'text-4xl'
-              }, '🍦 Neobrutalism Ice Cream Shop'),
+              }, '🍰 Neobrutalism Cake Shop'),
               React.createElement(CardDescription, {
                 key: 'desc',
                 className: 'text-main-foreground/80 text-lg'
@@ -585,8 +593,8 @@
           }, [
             React.createElement(Card, { key: 'order-form' }, [
               React.createElement(CardHeader, { key: 'form-header' }, [
-                React.createElement(CardTitle, { key: 'form-title' }, 'Place Your Order 🍨'),
-                React.createElement(CardDescription, { key: 'form-desc' }, 'Choose your favorite ice cream combination')
+                                  React.createElement(CardTitle, { key: 'form-title' }, 'Place Your Order 🍰'),
+                React.createElement(CardDescription, { key: 'form-desc' }, 'Choose your favorite cake combination')
               ]),
               React.createElement(CardContent, {
                 key: 'form-content',
@@ -646,23 +654,23 @@
                   ))
                 ]),
 
-                // Toppings
+                // Decorations
                 React.createElement('div', {
-                  key: 'toppings-section',
+                  key: 'decorations-section',
                   className: 'space-y-2'
                 }, [
-                  React.createElement(Label, { key: 'toppings-label' }, 'Toppings (Optional)'),
+                  React.createElement(Label, { key: 'decorations-label' }, 'Decorations (Optional)'),
                   React.createElement('div', {
-                    key: 'toppings-grid',
+                    key: 'decorations-grid',
                     className: 'grid grid-cols-2 gap-2'
-                  }, TOPPINGS.map(topping =>
+                  }, DECORATIONS.map(decoration =>
                     React.createElement(Button, {
-                      key: topping,
-                      variant: selectedToppings.includes(topping) ? 'default' : 'neutral',
+                      key: decoration,
+                      variant: selectedDecorations.includes(decoration) ? 'default' : 'neutral',
                       size: 'sm',
-                      onClick: () => handleToppingToggle(topping),
+                      onClick: () => handleDecorationToggle(decoration),
                       className: 'text-xs justify-start'
-                    }, `${selectedToppings.includes(topping) ? '✓ ' : ''}${topping}`)
+                    }, `${selectedDecorations.includes(decoration) ? '✓ ' : ''}${decoration}`)
                   ))
                 ])
               ]),
@@ -715,15 +723,15 @@
                   React.createElement('div', {
                     key: 'details',
                     className: 'text-sm text-muted-foreground'
-                  }, [
-                    React.createElement('div', { key: 'item' }, `${order.size} ${order.flavor} ice cream`),
-                                         order.toppings && order.toppings.length > 0 && React.createElement('div', { 
-                       key: 'toppings',
-                       className: 'mt-1'
-                     }, [
-                       React.createElement('strong', null, 'Toppings: '),
-                       order.toppings.join(', ')
-                     ]),
+                                      }, [
+                      React.createElement('div', { key: 'item' }, `${order.size} ${order.flavor} cake`),
+                      order.decorations && order.decorations.length > 0 && React.createElement('div', { 
+                        key: 'decorations',
+                        className: 'mt-1'
+                      }, [
+                        React.createElement('strong', null, 'Decorations: '),
+                        order.decorations.join(', ')
+                      ]),
                     React.createElement('div', {
                       key: 'time',
                       className: 'mt-1 text-xs'
@@ -812,9 +820,9 @@
                        React.createElement('strong', null, 'Item: '),
                        orderStatus.item
                      ]),
-                     orderStatus.toppings.length > 0 && React.createElement('div', { key: 'toppings' }, [
-                       React.createElement('strong', null, 'Toppings: '),
-                       orderStatus.toppings.join(', ')
+                     orderStatus.decorations.length > 0 && React.createElement('div', { key: 'decorations' }, [
+                       React.createElement('strong', null, 'Decorations: '),
+                       orderStatus.decorations.join(', ')
                      ]),
                      React.createElement('div', { key: 'price' }, [
                        React.createElement('strong', null, 'Total Price: '),
@@ -850,7 +858,7 @@
             React.createElement(Card, { key: 'stats-header' }, [
               React.createElement(CardHeader, { key: 'stats-header-content' }, [
                 React.createElement(CardTitle, { key: 'stats-title' }, '📈 Shop Statistics'),
-                React.createElement(CardDescription, { key: 'stats-desc' }, 'Real-time insights into our ice cream shop')
+                React.createElement(CardDescription, { key: 'stats-desc' }, 'Real-time insights into our cake shop')
               ])
             ]),
 
@@ -979,19 +987,19 @@
                       className: 'font-bold capitalize'
                     }, stats.stats.popularSize)
                   ]),
-                  React.createElement('div', { key: 'toppings-section' }, [
+                  React.createElement('div', { key: 'decorations-section' }, [
                     React.createElement('div', {
-                      key: 'toppings-label',
+                      key: 'decorations-label',
                       className: 'font-bold mb-2'
-                    }, 'Top Toppings:'),
+                    }, 'Top Decorations:'),
                     React.createElement('div', {
-                      key: 'toppings-list',
+                      key: 'decorations-list',
                       className: 'flex flex-wrap gap-1'
-                    }, stats.stats.topToppings.map(topping =>
+                    }, stats.stats.topDecorations.map(decoration =>
                       React.createElement('span', {
-                        key: topping,
+                        key: decoration,
                         className: 'px-2 py-1 bg-main text-main-foreground rounded text-xs'
-                      }, topping)
+                      }, decoration)
                     ))
                   ])
                 ])
@@ -1020,7 +1028,7 @@
 
     // Render the app
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(React.createElement(IceCreamApp));
+    root.render(React.createElement(CakeShopApp));
   </script>
 </body>
 </html>

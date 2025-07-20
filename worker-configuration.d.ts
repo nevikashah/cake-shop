@@ -6,7 +6,7 @@ declare namespace Cloudflare {
 		HONEYCOMB_API_KEY: string;
 		ORDER_COUNTER: DurableObjectNamespace<import("./src/index").OrderCounter>;
 		DB: D1Database;
-		ICE_CREAM_QUEUE: Queue;
+		CAKE_QUEUE: Queue;
 	}
 }
 interface Env extends Cloudflare.Env {}

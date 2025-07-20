@@ -4,12 +4,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-interface IceCreamOrder {
+interface CakeOrder {
   orderId: string
   customerName: string
   flavor: string
-  size: 'small' | 'medium' | 'large'
-  toppings?: string[]
+  size: '6-inch' | '8-inch' | '10-inch'
+  decorations?: string[]
   timestamp: string
 }
 
@@ -21,7 +21,7 @@ interface OrderResponse {
   order: {
     customer: string
     item: string
-    toppings: string[]
+    decorations: string[]
   }
 }
 
@@ -39,21 +39,21 @@ interface OrderStats {
     averageProcessingTime: string
     dailyOrders: number
     popularSize: string
-    topToppings: string[]
+    topDecorations: string[]
   }
 }
 
 const FLAVORS = [
-  'Vanilla', 'Chocolate', 'Strawberry', 'Mint Chocolate Chip', 
-  'Cookies & Cream', 'Rocky Road', 'Pistachio', 'Neapolitan'
+  'Vanilla', 'Chocolate', 'Red Velvet', 'Carrot', 
+  'Lemon', 'Funfetti', 'Strawberry', 'German Chocolate'
 ]
 
-const TOPPINGS = [
-  'Sprinkles', 'Hot Fudge', 'Caramel', 'Whipped Cream', 
-  'Cherry', 'Nuts', 'Chocolate Chips', 'Gummy Bears'
+const DECORATIONS = [
+  'Buttercream Frosting', 'Cream Cheese Frosting', 'Chocolate Ganache', 'Fresh Berries', 
+  'Edible Flowers', 'Sprinkles', 'Chocolate Shavings', 'Caramel Drizzle'
 ]
 
-export default function IceCreamApp() {
+export default function CakeShopApp() {
   const [activeTab, setActiveTab] = useState<'order' | 'status' | 'stats'>('order')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -61,8 +61,8 @@ export default function IceCreamApp() {
   // Order form state
   const [customerName, setCustomerName] = useState('')
   const [selectedFlavor, setSelectedFlavor] = useState('')
-  const [selectedSize, setSelectedSize] = useState<'small' | 'medium' | 'large'>('medium')
-  const [selectedToppings, setSelectedToppings] = useState<string[]>([])
+  const [selectedSize, setSelectedSize] = useState<'6-inch' | '8-inch' | '10-inch'>('8-inch')
+  const [selectedDecorations, setSelectedDecorations] = useState<string[]>([])
   const [lastOrder, setLastOrder] = useState<OrderResponse | null>(null)
   
   // Status check state
@@ -72,11 +72,11 @@ export default function IceCreamApp() {
   // Stats state
   const [stats, setStats] = useState<OrderStats | null>(null)
 
-  const handleToppingToggle = (topping: string) => {
-    setSelectedToppings(prev => 
-      prev.includes(topping) 
-        ? prev.filter(t => t !== topping)
-        : [...prev, topping]
+  const handleDecorationToggle = (decoration: string) => {
+    setSelectedDecorations(prev => 
+      prev.includes(decoration) 
+        ? prev.filter(d => d !== decoration)
+        : [...prev, decoration]
     )
   }
 
@@ -96,7 +96,7 @@ export default function IceCreamApp() {
           customerName,
           flavor: selectedFlavor,
           size: selectedSize,
-          toppings: selectedToppings
+          decorations: selectedDecorations
         })
       })
 
@@ -107,8 +107,8 @@ export default function IceCreamApp() {
         // Clear form
         setCustomerName('')
         setSelectedFlavor('')
-        setSelectedToppings([])
-        setSelectedSize('medium')
+        setSelectedDecorations([])
+        setSelectedSize('8-inch')
       } else {
         setError('Failed to place order: ' + data.message)
       }
@@ -169,7 +169,7 @@ export default function IceCreamApp() {
         {/* Header */}
         <Card className="bg-main text-main-foreground">
           <CardHeader className="text-center">
-            <CardTitle className="text-4xl">🍦 Neobrutalism Ice Cream Shop</CardTitle>
+            <CardTitle className="text-4xl">🍰 Neobrutalism Cake Shop</CardTitle>
             <CardDescription className="text-main-foreground/80 text-lg">
               Demo powered by Cloudflare Workers + Hono + Queues
             </CardDescription>
@@ -197,20 +197,20 @@ export default function IceCreamApp() {
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Place Your Order 🍨</CardTitle>
+                <CardTitle>Place Your Order 🎂</CardTitle>
                 <CardDescription>
-                  Choose your favorite ice cream combination
+                  Choose your favorite cake combination
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="customer-name">Your Name</Label>
-                                     <Input
-                     id="customer-name"
-                     placeholder="Enter your name"
-                     value={customerName}
-                     onChange={(e) => setCustomerName((e.target as HTMLInputElement).value)}
-                   />
+                  <Input
+                    id="customer-name"
+                    placeholder="Enter your name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -233,13 +233,13 @@ export default function IceCreamApp() {
                 <div className="space-y-2">
                   <Label>Size</Label>
                   <div className="flex gap-2">
-                    {(['small', 'medium', 'large'] as const).map((size) => (
+                    {(['6-inch', '8-inch', '10-inch'] as const).map((size) => (
                       <Button
                         key={size}
                         variant={selectedSize === size ? 'default' : 'neutral'}
                         size="sm"
                         onClick={() => setSelectedSize(size)}
-                        className="capitalize flex-1"
+                        className="flex-1"
                       >
                         {size}
                       </Button>
@@ -248,17 +248,17 @@ export default function IceCreamApp() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Toppings (Optional)</Label>
+                  <Label>Decorations (Optional)</Label>
                   <div className="grid grid-cols-2 gap-2">
-                    {TOPPINGS.map((topping) => (
+                    {DECORATIONS.map((decoration) => (
                       <Button
-                        key={topping}
-                        variant={selectedToppings.includes(topping) ? 'default' : 'neutral'}
+                        key={decoration}
+                        variant={selectedDecorations.includes(decoration) ? 'default' : 'neutral'}
                         size="sm"
-                        onClick={() => handleToppingToggle(topping)}
+                        onClick={() => handleDecorationToggle(decoration)}
                         className="text-xs justify-start"
                       >
-                        {selectedToppings.includes(topping) ? '✓ ' : ''}{topping}
+                        {selectedDecorations.includes(decoration) ? '✓ ' : ''}{decoration}
                       </Button>
                     ))}
                   </div>
@@ -271,7 +271,7 @@ export default function IceCreamApp() {
                   className="w-full"
                   size="lg"
                 >
-                  {loading ? 'Placing Order...' : '🍦 Place Order'}
+                  {loading ? 'Placing Order...' : '🍰 Place Order'}
                 </Button>
               </CardFooter>
             </Card>
@@ -289,8 +289,8 @@ export default function IceCreamApp() {
                   <div><strong>Order ID:</strong> <code className="bg-background text-foreground px-2 py-1 rounded text-sm">{lastOrder.orderId}</code></div>
                   <div><strong>Customer:</strong> {lastOrder.order.customer}</div>
                   <div><strong>Item:</strong> {lastOrder.order.item}</div>
-                  {lastOrder.order.toppings.length > 0 && (
-                    <div><strong>Toppings:</strong> {lastOrder.order.toppings.join(', ')}</div>
+                  {lastOrder.order.decorations.length > 0 && (
+                    <div><strong>Decorations:</strong> {lastOrder.order.decorations.join(', ')}</div>
                   )}
                   <div><strong>Estimated Time:</strong> {lastOrder.estimatedTime}</div>
                 </CardContent>
@@ -322,12 +322,12 @@ export default function IceCreamApp() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-2">
-                                 <Input
-                   placeholder="Enter your order ID"
-                   value={statusOrderId}
-                   onChange={(e) => setStatusOrderId((e.target as HTMLInputElement).value)}
-                   className="flex-1"
-                 />
+                <Input
+                  placeholder="Enter your order ID"
+                  value={statusOrderId}
+                  onChange={(e) => setStatusOrderId((e.target as HTMLInputElement).value)}
+                  className="flex-1"
+                />
                 <Button 
                   onClick={handleCheckStatus}
                   disabled={loading || !statusOrderId}
@@ -361,7 +361,7 @@ export default function IceCreamApp() {
               <CardHeader>
                 <CardTitle>📈 Shop Statistics</CardTitle>
                 <CardDescription>
-                  Real-time insights into our ice cream shop
+                  Real-time insights into our cake shop
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -407,14 +407,14 @@ export default function IceCreamApp() {
                     </div>
                     <div className="flex justify-between">
                       <span>Popular Size:</span>
-                      <span className="font-bold capitalize">{stats.stats.popularSize}</span>
+                      <span className="font-bold">{stats.stats.popularSize}</span>
                     </div>
                     <div>
-                      <div className="font-bold mb-2">Top Toppings:</div>
+                      <div className="font-bold mb-2">Top Decorations:</div>
                       <div className="flex flex-wrap gap-1">
-                        {stats.stats.topToppings.map((topping) => (
-                          <span key={topping} className="px-2 py-1 bg-main text-main-foreground rounded text-xs">
-                            {topping}
+                        {stats.stats.topDecorations.map((decoration) => (
+                          <span key={decoration} className="px-2 py-1 bg-main text-main-foreground rounded text-xs">
+                            {decoration}
                           </span>
                         ))}
                       </div>

@@ -5,7 +5,7 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"account_id": "ef861518e28eac75854273dc92548f4a",
-	"name": "ice-cream-shop",
+	"name": "cake-shop",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-07-19",
 	"compatibility_flags": [
@@ -29,22 +29,22 @@
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "ice-cream-orders",
-			"database_id": "7670db74-e36c-422b-a70c-58da0f5bacb4",
+			"database_name": "cake-shop-orders",
+			"database_id": "",
 			"migrations_dir": "drizzle"
 		}
 	],
 	"queues": {
 		"producers": [{
-			"binding": "ICE_CREAM_QUEUE",
-			"queue": "ice-cream-orders"
+			"binding": "CAKE_QUEUE",
+			"queue": "cake-orders"
 		}],
 		"consumers": [{
-			"queue": "ice-cream-orders",
+			"queue": "cake-orders",
 			"max_batch_size": 10,
 			"max_batch_timeout": 30,
 			"max_retries": 3,
-			"dead_letter_queue": "ice-cream-orders-dlq"
+			"dead_letter_queue": "cake-orders-dlq"
 		}]
 	},
 	"durable_objects": {

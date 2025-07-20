@@ -1,7 +1,7 @@
 /**
  * OrderCounter Durable Object
  * 
- * Tracks the total number of completed ice cream orders in real-time.
+ * Tracks the total number of completed cake orders in real-time.
  * Provides WebSocket connections for live updates to connected clients.
  * Persists counter state using Durable Object storage.
  */
@@ -106,7 +106,7 @@ class OrderCounter extends DurableObject {
       success: true,
       completedCount: this.completedCount,
       queuedCount: this.queuedCount,
-      message: "Completed order counter incremented"
+      message: "Completed cake order counter incremented"
     });
   }
 
@@ -129,7 +129,7 @@ class OrderCounter extends DurableObject {
       success: true,
       completedCount: this.completedCount,
       queuedCount: this.queuedCount,
-      message: "Queued order counter incremented"
+      message: "Queued cake order counter incremented"
     });
   }
 

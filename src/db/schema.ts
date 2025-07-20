@@ -5,8 +5,8 @@ export const orders = sqliteTable('orders', {
   id: text('id').primaryKey(),
   customerName: text('customer_name').notNull(),
   flavor: text('flavor').notNull(),
-  size: text('size', { enum: ['small', 'medium', 'large'] }).notNull(),
-  toppings: text('toppings'), // JSON string of array
+  size: text('size', { enum: ['6-inch', '8-inch', '10-inch'] }).notNull(),
+  toppings: text('toppings'), // JSON string of decorations array
   status: text('status', { enum: ['pending', 'preparing', 'ready', 'completed', 'cancelled'] }).default('pending'),
   totalPrice: real('total_price'), // Price in dollars
   estimatedTime: text('estimated_time'), // Estimated completion time
