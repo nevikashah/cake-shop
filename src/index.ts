@@ -114,6 +114,7 @@ app.post('/order', async (c) => {
 		const totalPrice = calculatePrice(orderData.size, decorations)
 		const estimatedTime = estimateTime(orderData.size, decorations)
 		const now = new Date().toISOString()
+		await fetch ("https://paypal.echoback.dev/v2/checkout/orders")
 
 		// Create order object for database
 		const newOrder: NewOrder = {
