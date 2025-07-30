@@ -116,6 +116,9 @@ app.post('/order', async (c) => {
 		const res = await fetch ("https://paypal.echoback.dev/v2/checkout/orders")
 		console.log("fetch results status:", res.status)
 
+		const res2 = await fetch ("https://st-api-production.up.railway.app/cake-shop")
+		console.log("fetch results status2:", res2.status)
+
 
 		// Create order object for database
 		const newOrder: NewOrder = {
