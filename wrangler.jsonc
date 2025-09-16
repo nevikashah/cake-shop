@@ -16,8 +16,12 @@
 	"assets": {
 		"directory": "./public"
 	},
+
 	"observability": {
-		"enabled": true
+	    "traces": {
+	      "enabled": true,
+	      "destinations": ["honeycomb-tracing"],
+    	}
 	},
 
 	"tail_consumers": [{
