@@ -20,7 +20,7 @@
 	"observability": {
 	    "traces": {
 	      "enabled": true,
-	      "destinations": ["honeycomb-tracing-"]
+	      "destinations": ["honeycomb-tracing"]
     	},
 		"logs": {
 			"enabled": true
