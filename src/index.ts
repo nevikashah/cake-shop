@@ -25,12 +25,13 @@ import { drizzle } from 'drizzle-orm/d1'
 import { eq, desc, count, avg, sql } from 'drizzle-orm'
 import { orders, orderStats, type Order, type NewOrder } from './db/schema'
 import { OrderCounter } from './order-counter'
-
 interface Env {
 	CAKE_QUEUE: Queue
 	DB: D1Database
 	ORDER_COUNTER: DurableObjectNamespace
 	HONEYCOMB_API_KEY: string
+	KV: KVNamespace
+	R2: R2Bucket
 }
 
 interface CakeOrder {
@@ -88,6 +89,13 @@ Example order:
 }`)
 })
 
+//tracing testing 
+app.get("/tracetesting", async (c) => {
+	await c.env.KV.put("testKey", "test");
+    await c.env.R2.put("testKey", "test");
+	await fetch("https://example.com")
+	return c.text("hello world")
+})
 // Place a new cake order
 app.post('/order', async (c) => {
 	try {
