@@ -10,8 +10,8 @@
 	"compatibility_date": "2025-07-19",
 	"compatibility_flags": [
 		"nodejs_compat",
-		"tail_worker_user_spans",
-		"streaming_tail_worker",
+//		"tail_worker_user_spans",
+//		"streaming_tail_worker",
 	],
 	"assets": {
 		"directory": "./public"
