@@ -20,16 +20,15 @@
 	"observability": {
 	    "traces": {
 	      "enabled": true,
-	      "destinations": ["grafana-tracing"]
+	      "destinations": ["grafana-tracing",  "honeycomb-tracing"]
     	},
 		"logs": {
-			"enabled": true
+			"enabled": true,
+			"destinations": ["honeycomb-logs"]
 		  }
 	},
 
-	/* "tail_consumers": [{
-		"service": "otel-streaming-tail-worker"
-	}], */
+	"tail_consumers": [], 
 
 	"logpush": false, 
 
